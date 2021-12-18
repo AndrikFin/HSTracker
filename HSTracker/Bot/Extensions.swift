@@ -53,7 +53,7 @@ extension NSPoint {
     }
     
     static var chooseButton: NSPoint {
-        return NSPoint(x: 0.42, y: -1.74).toScreenPoint
+        return NSPoint(x: 0.42, y: 0.22).toScreenPoint
     }
     
     static var testButton: NSPoint {
