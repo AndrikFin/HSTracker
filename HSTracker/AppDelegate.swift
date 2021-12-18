@@ -36,6 +36,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var appHealth: AppHealth = AppHealth.instance
     
     var coreManager: CoreManager!
+    var bot = Bot()
     var triggers: [NSObjectProtocol] = []
     
     lazy var preferences = PreferencesWindowController(preferencePanes: [
@@ -117,27 +118,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             credential.oauthToken = oauthToken
         }
         
-        HSReplayAPI.oauthswift.renewAccessToken(withRefreshToken: credential.oauthRefreshToken, completionHandler: { result in
-            switch result {
-            case .success(let (credential, _, _)):
-                logger.debug("HSReplay: Refreshed OAuthToken")
-                Settings.hsReplayOAuthToken =  credential.oauthToken
-                Settings.hsReplayOAuthRefreshToken = credential.oauthRefreshToken
-                HSReplayAPI.getAccount().done { result in
-                    switch result {
-                    case .failed:
-                        logger.error("Failed to retrieve account data")
-                    case .success(account: let data):
-                        logger.info("Successfully retrieved account data: Username: \(data.username), battletag: \(data.battletag)")
-                    }
-                }.catch { error in
-                    logger.error(error)
-                }
-            case .failure(let error):
-                logger.error(error)
-            }
-        })
-        
         // init debug loggers
         #if DEBUG
         let console = ConsoleDestination()
@@ -150,8 +130,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         file.logFileURL = path.appendingPathComponent("hstracker.log")
         logger.addDestination(file)
         logger.info("*** Starting \(Version.buildName) ***")
-        
-        HSReplayNetHelper.initialize()
         
         // check if we have valid settings
         if Settings.validated() {
@@ -170,8 +148,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             logger.warning("Failed to obtain bundle resource path")
         }
-        
-        Analytics.trackEvent("app_start")
     }
     
     func applicationWillTerminate(_ notification: Notification) {

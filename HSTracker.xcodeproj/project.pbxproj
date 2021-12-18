@@ -16,6 +16,8 @@
 		1CCB4ACF1E84708A003FD1AD /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 433554321D5F6B4400277B27 /* libz.tbd */; };
 		1CCB4AEB1E8A4930003FD1AD /* LogEventHandlers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CCB4AEA1E8A4930003FD1AD /* LogEventHandlers.swift */; };
 		1CF204F91E83B74300037A42 /* MirrorHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CF204F81E83B74300037A42 /* MirrorHelper.swift */; };
+		24211F00276CA8CD0087425E /* Bot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24211EFF276CA8CD0087425E /* Bot.swift */; };
+		24211F02276CDECC0087425E /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24211F01276CDECC0087425E /* Extensions.swift */; };
 		340AAC051D0544AD0015FE33 /* StringTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 340AAC041D0544AD0015FE33 /* StringTracker.swift */; };
 		43050C621E6B484D007600EA /* Hearthstone.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 43050C611E6B484D007600EA /* Hearthstone.xcassets */; };
 		4305CA471CF434E30048E7EC /* Cards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4305CA461CF434E30048E7EC /* Cards.swift */; };
@@ -665,6 +667,8 @@
 		1CF1B5891E81426D007DCBF2 /* AlgorithmTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AlgorithmTests.swift; sourceTree = "<group>"; };
 		1CF1B58B1E815810007DCBF2 /* LogReaderTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LogReaderTests.swift; sourceTree = "<group>"; };
 		1CF204F81E83B74300037A42 /* MirrorHelper.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MirrorHelper.swift; sourceTree = "<group>"; };
+		24211EFF276CA8CD0087425E /* Bot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bot.swift; sourceTree = "<group>"; };
+		24211F01276CDECC0087425E /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		340AAC041D0544AD0015FE33 /* StringTracker.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StringTracker.swift; sourceTree = "<group>"; };
 		43050C601E6B2C0E007600EA /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/TrackersPreferences.strings; sourceTree = "<group>"; };
 		43050C611E6B484D007600EA /* Hearthstone.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Hearthstone.xcassets; sourceTree = "<group>"; };
@@ -1281,6 +1285,15 @@
 			path = Parsers;
 			sourceTree = "<group>";
 		};
+		24211EFE276CA8BE0087425E /* Bot */ = {
+			isa = PBXGroup;
+			children = (
+				24211EFF276CA8CD0087425E /* Bot.swift */,
+				24211F01276CDECC0087425E /* Extensions.swift */,
+			);
+			path = Bot;
+			sourceTree = "<group>";
+		};
 		4323C5E31E1695DD00C97896 /* HearthMirror */ = {
 			isa = PBXGroup;
 			children = (
@@ -1498,6 +1511,7 @@
 		439C7E4A1C7772C000D29859 /* HSTracker */ = {
 			isa = PBXGroup;
 			children = (
+				24211EFE276CA8BE0087425E /* Bot */,
 				B82F4EAC24E3221D00905024 /* BobsBuddy */,
 				B82F4EA924E3020800905024 /* Mono */,
 				5B0AB88C2313083700654A03 /* HSTracker.entitlements */,
@@ -2037,7 +2051,6 @@
 				TargetAttributes = {
 					439C7E471C7772C000D29859 = {
 						CreatedOnToolsVersion = 7.2.1;
-						DevelopmentTeam = RL7C49LAMC;
 						LastSwiftMigration = 1220;
 						ProvisioningStyle = Manual;
 						SystemCapabilities = {
@@ -2360,6 +2373,7 @@
 				B864AE2025979E3400793F36 /* AdventureDbId.swift in Sources */,
 				4C3E2D8C245ED5AA00292349 /* Toaster.swift in Sources */,
 				43EECB961C7DE3BA0077AC1B /* DeckCellView.swift in Sources */,
+				24211F00276CA8CD0087425E /* Bot.swift in Sources */,
 				43A8A0F11E0BC08F00AF34FD /* JadeCounter.swift in Sources */,
 				B8AB59942742F94900383EC8 /* RateLimiter.swift in Sources */,
 				438B04F91E6F55720071594B /* Date.swift in Sources */,
@@ -2530,6 +2544,7 @@
 				434910471D09505E00B22DB2 /* BoardDamage.swift in Sources */,
 				B8C33FB1273EF851006DA79E /* MercenariesCoins.swift in Sources */,
 				439C7EDE1C777FA900D29859 /* ImageUtils.swift in Sources */,
+				24211F02276CDECC0087425E /* Extensions.swift in Sources */,
 				431AA0CD1D362ECB0030AD22 /* Race.swift in Sources */,
 				1C132F821DBA24C1002B1BF2 /* AppHealth.swift in Sources */,
 				439C7EC31C777F8900D29859 /* LoadingScreenHandler.swift in Sources */,
@@ -3347,8 +3362,10 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = HSTracker/HSTracker.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 439EQJ24ZZ;
 				ENABLE_HARDENED_RUNTIME = YES;
 				EXCLUDED_ARCHS = arm64;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -3367,13 +3384,13 @@
 					"@executable_path/../Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = /Library/Frameworks/Mono.framework/Libraries;
-				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				MACOSX_DEPLOYMENT_TARGET = 12.2;
 				MARKETING_VERSION = 2.0.5;
 				OTHER_CFLAGS = "$(inherited)";
 				OTHER_CODE_SIGN_FLAGS = "--deep";
 				OTHER_LDFLAGS = "$(inherited)";
 				OTHER_SWIFT_FLAGS = "-DDEBUG $(inherited)";
-				PRODUCT_BUNDLE_IDENTIFIER = net.hearthsim.hstracker;
+				PRODUCT_BUNDLE_IDENTIFIER = us.mod.zephyr.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_INCLUDE_PATHS = "";
@@ -3393,6 +3410,7 @@
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 439EQJ24ZZ;
 				ENABLE_HARDENED_RUNTIME = YES;
 				EXCLUDED_ARCHS = arm64;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -3411,11 +3429,11 @@
 					"@executable_path/../Frameworks",
 				);
 				LIBRARY_SEARCH_PATHS = /Library/Frameworks/Mono.framework/Libraries;
-				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				MACOSX_DEPLOYMENT_TARGET = 12.2;
 				MARKETING_VERSION = 2.0.5;
 				OTHER_CODE_SIGN_FLAGS = "--deep";
 				OTHER_LDFLAGS = "$(inherited)";
-				PRODUCT_BUNDLE_IDENTIFIER = net.hearthsim.hstracker;
+				PRODUCT_BUNDLE_IDENTIFIER = us.mod.zephyr.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_COMPILATION_MODE = wholemodule;
