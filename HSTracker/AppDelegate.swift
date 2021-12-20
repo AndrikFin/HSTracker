@@ -55,50 +55,50 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         AppDelegate._instance = self
         //setenv("CFNETWORK_DIAGNOSTICS", "3", 1)
         
-        Crashes.userConfirmationHandler = { (errorReports: [ErrorReport]) in
-            // Your code to present your UI to the user, e.g. an NSAlert.
-            let alert: NSAlert = NSAlert()
-            alert.messageText = NSLocalizedString("HSTracker Crashed", comment: "")
-            alert.informativeText = NSLocalizedString("Do you want to send an anonymous crash report so we can try to fix the issue?", comment: "")
-            alert.addButton(withTitle: NSLocalizedString("Always send", comment: ""))
-            alert.addButton(withTitle: NSLocalizedString("Send", comment: ""))
-            alert.addButton(withTitle: NSLocalizedString("Don't send", comment: ""))
-            alert.alertStyle = .warning
+//        Crashes.userConfirmationHandler = { (errorReports: [ErrorReport]) in
+//            // Your code to present your UI to the user, e.g. an NSAlert.
+//            let alert: NSAlert = NSAlert()
+//            alert.messageText = NSLocalizedString("HSTracker Crashed", comment: "")
+//            alert.informativeText = NSLocalizedString("Do you want to send an anonymous crash report so we can try to fix the issue?", comment: "")
+//            alert.addButton(withTitle: NSLocalizedString("Always send", comment: ""))
+//            alert.addButton(withTitle: NSLocalizedString("Send", comment: ""))
+//            alert.addButton(withTitle: NSLocalizedString("Don't send", comment: ""))
+//            alert.alertStyle = .warning
+//
+//            switch alert.runModal() {
+//            case .alertFirstButtonReturn:
+//                Crashes.notify(with: .always)
+//            case .alertSecondButtonReturn:
+//                Crashes.notify(with: .send)
+//            case .alertThirdButtonReturn:
+//                Crashes.notify(with: .dontSend)
+//            default:
+//                break
+//            }
+//
+//            return true // Return true if the SDK should await user confirmation, otherwise return false.
+//        }
 
-            switch alert.runModal() {
-            case .alertFirstButtonReturn:
-                Crashes.notify(with: .always)
-            case .alertSecondButtonReturn:
-                Crashes.notify(with: .send)
-            case .alertThirdButtonReturn:
-                Crashes.notify(with: .dontSend)
-            default:
-                break
-            }
-
-            return true // Return true if the SDK should await user confirmation, otherwise return false.
-        }
-
-        AppCenter.start(withAppSecret: "2f0021b9-bb18-4282-9aa1-cfbbd85d3bed", services: [Analytics.self, Crashes.self])
+//        AppCenter.start(withAppSecret: "2f0021b9-bb18-4282-9aa1-cfbbd85d3bed", services: [Analytics.self, Crashes.self])
         
-        // Migrate preferences from old bundle ID
-        let oldPrefs = UserDefaults.standard.persistentDomain(forName: "be.michotte.hstracker")
-        if let oldPrefs = oldPrefs, let bundleId = Bundle.main.bundleIdentifier {
-            UserDefaults.standard.setPersistentDomain(oldPrefs, forName: bundleId)
-            UserDefaults.standard.removePersistentDomain(forName: "be.michotte.hstracker")
-            UserDefaults.standard.synchronize()
-        }
+//        // Migrate preferences from old bundle ID
+//        let oldPrefs = UserDefaults.standard.persistentDomain(forName: "be.michotte.hstracker")
+//        if let oldPrefs = oldPrefs, let bundleId = Bundle.main.bundleIdentifier {
+//            UserDefaults.standard.setPersistentDomain(oldPrefs, forName: bundleId)
+//            UserDefaults.standard.removePersistentDomain(forName: "be.michotte.hstracker")
+//            UserDefaults.standard.synchronize()
+//        }
         
         // warn user about memory reading
-        if Settings.showMemoryReadingWarning {
-            let alert = NSAlert()
-            alert.addButton(withTitle: NSLocalizedString("I understand", comment: ""))
-            // swiftlint:disable line_length
-            alert.messageText = NSLocalizedString("HSTracker needs elevated privileges to read data from Hearthstone's memory. If macOS asks you for your system password, do not be alarmed, no changes to your computer will be performed.", comment: "")
-            // swiftlint:enable line_length
-            alert.runModal()
-            Settings.showMemoryReadingWarning = false
-        }
+//        if Settings.showMemoryReadingWarning {
+//            let alert = NSAlert()
+//            alert.addButton(withTitle: NSLocalizedString("I understand", comment: ""))
+//            // swiftlint:disable line_length
+//            alert.messageText = NSLocalizedString("HSTracker needs elevated privileges to read data from Hearthstone's memory. If macOS asks you for your system password, do not be alarmed, no changes to your computer will be performed.", comment: "")
+//            // swiftlint:enable line_length
+//            alert.runModal()
+//            Settings.showMemoryReadingWarning = false
+//        }
         
         // create folders in file system
         Paths.initDirs()
@@ -110,13 +110,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSAppleEventManager.shared().setEventHandler(self, andSelector: #selector(AppDelegate.handleGetURL(event:withReplyEvent:)), forEventClass: AEEventClass(kInternetEventClass), andEventID: AEEventID(kAEGetURL))
         
         // Restore OAuth credentials
-        let credential = HSReplayAPI.oauthswift.client.credential
-        if let refreshToken = Settings.hsReplayOAuthRefreshToken {
-            credential.oauthRefreshToken = refreshToken
-        }
-        if let oauthToken = Settings.hsReplayOAuthToken {
-            credential.oauthToken = oauthToken
-        }
+//        let credential = HSReplayAPI.oauthswift.client.credential
+//        if let refreshToken = Settings.hsReplayOAuthRefreshToken {
+//            credential.oauthRefreshToken = refreshToken
+//        }
+//        if let oauthToken = Settings.hsReplayOAuthToken {
+//            credential.oauthToken = oauthToken
+//        }
         
         // init debug loggers
         #if DEBUG

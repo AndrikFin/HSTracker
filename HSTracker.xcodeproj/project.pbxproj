@@ -18,6 +18,7 @@
 		1CF204F91E83B74300037A42 /* MirrorHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CF204F81E83B74300037A42 /* MirrorHelper.swift */; };
 		24211F00276CA8CD0087425E /* Bot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24211EFF276CA8CD0087425E /* Bot.swift */; };
 		24211F02276CDECC0087425E /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24211F01276CDECC0087425E /* Extensions.swift */; };
+		24431FE0276FB9D500E5CC1E /* ImageRecognitionHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24431FDF276FB9D500E5CC1E /* ImageRecognitionHelper.swift */; };
 		340AAC051D0544AD0015FE33 /* StringTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 340AAC041D0544AD0015FE33 /* StringTracker.swift */; };
 		43050C621E6B484D007600EA /* Hearthstone.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 43050C611E6B484D007600EA /* Hearthstone.xcassets */; };
 		4305CA471CF434E30048E7EC /* Cards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4305CA461CF434E30048E7EC /* Cards.swift */; };
@@ -669,6 +670,7 @@
 		1CF204F81E83B74300037A42 /* MirrorHelper.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MirrorHelper.swift; sourceTree = "<group>"; };
 		24211EFF276CA8CD0087425E /* Bot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bot.swift; sourceTree = "<group>"; };
 		24211F01276CDECC0087425E /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
+		24431FDF276FB9D500E5CC1E /* ImageRecognitionHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageRecognitionHelper.swift; sourceTree = "<group>"; };
 		340AAC041D0544AD0015FE33 /* StringTracker.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StringTracker.swift; sourceTree = "<group>"; };
 		43050C601E6B2C0E007600EA /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/TrackersPreferences.strings; sourceTree = "<group>"; };
 		43050C611E6B484D007600EA /* Hearthstone.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Hearthstone.xcassets; sourceTree = "<group>"; };
@@ -1290,6 +1292,7 @@
 			children = (
 				24211EFF276CA8CD0087425E /* Bot.swift */,
 				24211F01276CDECC0087425E /* Extensions.swift */,
+				24431FDF276FB9D500E5CC1E /* ImageRecognitionHelper.swift */,
 			);
 			path = Bot;
 			sourceTree = "<group>";
@@ -2507,6 +2510,7 @@
 				B8AFA40B2723310700B3470E /* BoardOverlay.swift in Sources */,
 				43C9EF291E9C1DED00D17F2A /* ArenaHelperSync.swift in Sources */,
 				43F4D0491EB7A23E006B4479 /* HeroPower.swift in Sources */,
+				24431FE0276FB9D500E5CC1E /* ImageRecognitionHelper.swift in Sources */,
 				439DD8FA1DB236A4004EBE47 /* ThemeElement.swift in Sources */,
 				436DFAA31E6AE1D8001C8F34 /* PackWatcher.swift in Sources */,
 				1C17D24C1E82C81700ED4047 /* LogEventParser.swift in Sources */,

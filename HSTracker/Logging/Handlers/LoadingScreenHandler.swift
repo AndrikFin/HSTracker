@@ -35,6 +35,8 @@ struct LoadingScreenHandler: LogEventParser {
     let GameModeRegex: RegexPattern = "prevMode=(\\w+).*currMode=(\\w+)"
 
     func handle(logLine: LogLine) {
+        AppDelegate.instance().bot.updateState()
+        
         if logLine.line.match(GameModeRegex) {
             let matches = logLine.line.matches(GameModeRegex)
 			let game = coreManager.game

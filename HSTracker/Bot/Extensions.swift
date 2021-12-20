@@ -10,8 +10,24 @@ import Foundation
 import AppKit
 
 extension NSPoint {
-    static var window: NSWindow {
+    static var playerWindow: NSWindow {
         return AppDelegate.instance().coreManager.game.windowManager.playerBoardOverlay.view.window!
+    }
+    
+    static var enemyWindow: NSWindow {
+        return AppDelegate.instance().coreManager.game.windowManager.opponentBoardOverlay.view.window!
+    }
+    
+    var playerScreenCenter: NSPoint {
+        return NSPoint.playerWindow.convertPoint(toScreen: self).toEuqlid
+    }
+    
+    var enemyScreenCenter: NSPoint {
+        return NSPoint.enemyWindow.convertPoint(toScreen: self).toEuqlid
+    }
+    
+    var toHSPoint: NSPoint {
+        return self.toEuqlid
     }
     
     static var hsInfo: [String: Any]? {
@@ -48,12 +64,36 @@ extension NSPoint {
         return saveFrame
     }
     
+    static var mapTo: NSPoint {
+        return NSPoint(x: 0.07, y: 0.08).toScreenPoint
+    }
+    
+    static var mapFrom: NSPoint {
+        return NSPoint(x: -0.5, y: -0.07).toScreenPoint
+    }
+    
+    static var bonusDoneButton: NSPoint {
+        return NSPoint(x: 0.15, y: 0.30).toScreenPoint
+    }
+    
     static var readyButton: NSPoint {
         return NSPoint(x: 0.53, y: 0.0).toScreenPoint
     }
     
     static var chooseButton: NSPoint {
-        return NSPoint(x: 0.42, y: 0.22).toScreenPoint
+        return NSPoint(x: 0.46, y: 0.34).toScreenPoint
+    }
+    
+    static var firstSkill: NSPoint {
+        return NSPoint(x: -0.16, y: -0.03).toScreenPoint
+    }
+    
+    static var secondSkill: NSPoint {
+        return NSPoint(x: -0.00, y: -0.03).toScreenPoint
+    }
+    
+    static var thirdSkill: NSPoint {
+        return NSPoint(x: 0.16, y: -0.03).toScreenPoint
     }
     
     static var testButton: NSPoint {
@@ -99,5 +139,136 @@ extension NSPoint {
 extension NSScreen {
     var displayID: CGDirectDisplayID {
         CGDirectDisplayID(deviceDescription[NSDeviceDescriptionKey(rawValue: "NSScreenNumber")] as! UInt)
+    }
+}
+
+class SerialOperationQueue: OperationQueue {
+    static var queue = DispatchQueue(label: "bot.serial")
+    
+    static var shared: SerialOperationQueue = {
+        let queue = SerialOperationQueue()
+        queue.maxConcurrentOperationCount = 1
+        queue.qualityOfService = .userInteractive
+        return queue
+    }()
+    
+    var operationsArray: [BlockOperation] = []
+    
+    override var underlyingQueue: DispatchQueue? {
+        set {
+            
+        } get {
+            return SerialOperationQueue.queue
+        }
+    }
+}
+
+extension CGEvent {
+    
+    static var isClicking = false
+    
+    class func letfClick(position: NSPoint, delay: TimeInterval = 0.05, completion: (()->Void)? = nil) {
+        guard !AppDelegate.instance().bot.paused && isClicking == false && NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == "unity.Blizzard Entertainment.Hearthstone" })?.isActive == true else { return }
+        
+        isClicking = true
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            CGEvent(mouseEventSource: CGEventSource.init(stateID: .hidSystemState),
+                    mouseType: .leftMouseDown,
+                    mouseCursorPosition: position,
+                    mouseButton: .left)?.post(tap: .cghidEventTap)
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                CGEvent(mouseEventSource: CGEventSource.init(stateID: .hidSystemState),
+                        mouseType: .leftMouseUp,
+                        mouseCursorPosition: position,
+                        mouseButton: .left)?.post(tap: .cghidEventTap)
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    isClicking = false
+                    completion?()
+                }
+            }
+        }
+    }
+    
+    class func move(position: NSPoint, delay: TimeInterval = 0.05, completion: (()->Void)? = nil) {
+        guard !AppDelegate.instance().bot.paused && isClicking == false && NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == "unity.Blizzard Entertainment.Hearthstone" })?.isActive == true else { return }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            CGEvent(mouseEventSource: CGEventSource.init(stateID: .hidSystemState),
+                    mouseType: .mouseMoved,
+                    mouseCursorPosition: position,
+                    mouseButton: .left)?.post(tap: .cghidEventTap)
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                completion?()
+            }
+        }
+    }
+    
+    class func scroll(completion: (()->Void)? = nil) {
+        guard !AppDelegate.instance().bot.paused && isClicking == false && NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == "unity.Blizzard Entertainment.Hearthstone" })?.isActive == true else { return }
+        
+        DispatchQueue.main.async {
+            CGEvent(scrollWheelEvent2Source: nil,
+                    units: CGScrollEventUnit.pixel,
+                    wheelCount: 1,
+                    wheel1: Int32(NSPoint.frame.size.height) / 18,
+                    wheel2: 0,
+                    wheel3: 0)?.post(tap: .cghidEventTap)
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                completion?()
+            }
+        }
+    }
+}
+
+extension Game {
+    var step: Step {
+        return  Step(rawValue: gameEntity?[.step] ?? 0) ?? .invalid
+    }
+}
+
+extension NSRect {
+    var center: NSPoint {
+        return NSPoint(x: midX, y: midY)
+    }
+}
+
+extension NSView {
+    var center: NSPoint {
+        return frame.center
+    }
+}
+
+extension Card {
+    var role: Int {
+        return jsonRepresentation["mercenariesRole"] as? Int ?? 0
+    }
+}
+
+fileprivate let badChars = CharacterSet.alphanumerics.inverted
+extension String {
+    var uppercasingFirst: String {
+        return prefix(1).uppercased() + dropFirst()
+    }
+
+    var lowercasingFirst: String {
+        return prefix(1).lowercased() + dropFirst()
+    }
+
+    var camelized: String {
+        guard !isEmpty else {
+            return ""
+        }
+
+        let parts = self.components(separatedBy: badChars)
+
+        let first = String(describing: parts.first!).lowercasingFirst
+        let rest = parts.dropFirst().map({String($0).uppercasingFirst})
+
+        return ([first] + rest).joined(separator: "")
     }
 }

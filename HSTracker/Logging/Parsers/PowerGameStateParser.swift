@@ -79,6 +79,10 @@ class PowerGameStateParser: LogEventParser {
 
     func handle(logLine: LogLine) {
         var creationTag = false
+        
+        defer {
+            AppDelegate.instance().bot.updateState()
+        }
 
         // current game
         if logLine.line.match(GameEntityRegex) {
