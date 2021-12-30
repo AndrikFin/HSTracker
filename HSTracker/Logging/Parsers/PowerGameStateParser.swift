@@ -81,7 +81,9 @@ class PowerGameStateParser: LogEventParser {
         var creationTag = false
         
         defer {
-            AppDelegate.instance().bot.updateState()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                AppDelegate.instance().bot.updateState()
+            }
         }
 
         // current game

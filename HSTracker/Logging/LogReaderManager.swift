@@ -183,7 +183,7 @@ final class LogReaderManager {
 	}
 	
 	private func processLine(line: LogLine) {
-        print("LOG: \(line)")
+//        print("LOG: \(line)")
         switch line.namespace {
         case .power:
             self.powerGameStateParser.handle(logLine: line)

@@ -64,20 +64,57 @@ extension NSPoint {
         return saveFrame
     }
     
-    static var mapTo: NSPoint {
-        return NSPoint(x: 0.07, y: 0.08).toScreenPoint
+    static var boxesButtons: [NSPoint] {
+        return [NSPoint(x: 0.03, y:  -0.19).toScreenPoint,
+                NSPoint(x: 0.32, y:  -0.06).toScreenPoint,
+                NSPoint(x: 0.26, y:  0.26).toScreenPoint,
+                NSPoint(x: -0.2, y:  0.28).toScreenPoint,
+                NSPoint(x: -0.27, y:  -0.08).toScreenPoint,
+        ]
     }
     
-    static var mapFrom: NSPoint {
-        return NSPoint(x: -0.5, y: -0.07).toScreenPoint
+    static var disconnectOKButton: NSPoint {
+        return NSPoint(x: 0.00, y: 0.11).toScreenPoint
     }
     
     static var bonusDoneButton: NSPoint {
+        return NSPoint(x: 0.02, y: 0.05).toScreenPoint
+    }
+    
+    static var finalScreenButton: NSPoint {
+        return NSPoint(x: 0.00, y: 0.31).toScreenPoint
+    }
+    
+    static var firstVisitor: NSPoint {
+        return NSPoint(x: -0.29, y: 0.06).toScreenPoint
+    }
+    
+    static var mysteryChooseButton: NSPoint {
+        return NSPoint(x: -0.02, y: 0.2).toScreenPoint
+    }
+    
+    static var bossButton: NSPoint {
+        return NSPoint(x: -0.18, y: -0.26).toScreenPoint
+    }
+    
+    static var mapTo: NSPoint {
+        return NSPoint(x: 0.17, y: -0.04).toScreenPoint
+    }
+    
+    static var mapFrom: NSPoint {
+        return NSPoint(x: -0.52, y: -0.04).toScreenPoint
+    }
+    
+    static var firstBonusButton: NSPoint {
+        return NSPoint(x: -0.13, y: 0.00).toScreenPoint
+    }
+    
+    static var bonusTakeButton: NSPoint {
         return NSPoint(x: 0.15, y: 0.30).toScreenPoint
     }
     
     static var readyButton: NSPoint {
-        return NSPoint(x: 0.53, y: 0.0).toScreenPoint
+        return NSPoint(x: 0.53, y: -0.02).toScreenPoint
     }
     
     static var chooseButton: NSPoint {
@@ -97,7 +134,7 @@ extension NSPoint {
     }
     
     static var testButton: NSPoint {
-        return NSPoint(x: -0.64, y: 0.38).toScreenPoint
+        return NSPoint(x: -0.4, y: 0.3).toScreenPoint
     }
     
     var proportionalPoint: NSPoint {
@@ -142,84 +179,77 @@ extension NSScreen {
     }
 }
 
-class SerialOperationQueue: OperationQueue {
-    static var queue = DispatchQueue(label: "bot.serial")
-    
-    static var shared: SerialOperationQueue = {
-        let queue = SerialOperationQueue()
-        queue.maxConcurrentOperationCount = 1
-        queue.qualityOfService = .userInteractive
-        return queue
-    }()
-    
-    var operationsArray: [BlockOperation] = []
-    
-    override var underlyingQueue: DispatchQueue? {
-        set {
-            
-        } get {
-            return SerialOperationQueue.queue
-        }
-    }
-}
-
 extension CGEvent {
     
-    static var isClicking = false
+    static var bot: Bot {
+        return AppDelegate.instance().bot
+    }
     
     class func letfClick(position: NSPoint, delay: TimeInterval = 0.05, completion: (()->Void)? = nil) {
-        guard !AppDelegate.instance().bot.paused && isClicking == false && NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == "unity.Blizzard Entertainment.Hearthstone" })?.isActive == true else { return }
+        guard !AppDelegate.instance().bot.paused && NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == "unity.Blizzard Entertainment.Hearthstone" })?.isActive == true else {
+            return
+        }
         
-        isClicking = true
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            CGEvent(mouseEventSource: CGEventSource.init(stateID: .hidSystemState),
-                    mouseType: .leftMouseDown,
-                    mouseCursorPosition: position,
-                    mouseButton: .left)?.post(tap: .cghidEventTap)
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                CGEvent(mouseEventSource: CGEventSource.init(stateID: .hidSystemState),
-                        mouseType: .leftMouseUp,
+        DispatchQueue.main.async {
+            bot.delay(delay, type: .click) {
+                CGEvent(mouseEventSource: CGEventSource.init(stateID: .combinedSessionState),
+                        mouseType: .leftMouseDown,
                         mouseCursorPosition: position,
                         mouseButton: .left)?.post(tap: .cghidEventTap)
                 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    isClicking = false
-                    completion?()
+                bot.delay(0.05, type: .click) {
+                    CGEvent(mouseEventSource: CGEventSource.init(stateID: .combinedSessionState),
+                            mouseType: .leftMouseUp,
+                            mouseCursorPosition: position,
+                            mouseButton: .left)?.post(tap: .cghidEventTap)
+                    bot.delay(0.05, type: .click) {
+                        completion?()
+                    }
                 }
             }
         }
     }
     
     class func move(position: NSPoint, delay: TimeInterval = 0.05, completion: (()->Void)? = nil) {
-        guard !AppDelegate.instance().bot.paused && isClicking == false && NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == "unity.Blizzard Entertainment.Hearthstone" })?.isActive == true else { return }
+        guard !AppDelegate.instance().bot.paused && NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == "unity.Blizzard Entertainment.Hearthstone" })?.isActive == true else {
+            return
+        }
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            CGEvent(mouseEventSource: CGEventSource.init(stateID: .hidSystemState),
-                    mouseType: .mouseMoved,
-                    mouseCursorPosition: position,
-                    mouseButton: .left)?.post(tap: .cghidEventTap)
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                completion?()
+        DispatchQueue.main.async {
+            bot.delay(delay, type: .click) {
+                CGEvent(mouseEventSource: CGEventSource.init(stateID: .combinedSessionState),
+                        mouseType: .mouseMoved,
+                        mouseCursorPosition: position,
+                        mouseButton: .left)?.post(tap: .cghidEventTap)
+                
+                bot.delay(0.05, type: .click) {
+                    completion?()
+                }
             }
         }
     }
     
-    class func scroll(completion: (()->Void)? = nil) {
-        guard !AppDelegate.instance().bot.paused && isClicking == false && NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == "unity.Blizzard Entertainment.Hearthstone" })?.isActive == true else { return }
+    class func scroll(top: Bool = true, value: Int = 4, completion: (()->Void)? = nil) {
+        guard !AppDelegate.instance().bot.paused && NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == "unity.Blizzard Entertainment.Hearthstone" })?.isActive == true else {
+            return
+        }
         
         DispatchQueue.main.async {
-            CGEvent(scrollWheelEvent2Source: nil,
-                    units: CGScrollEventUnit.pixel,
-                    wheelCount: 1,
-                    wheel1: Int32(NSPoint.frame.size.height) / 18,
-                    wheel2: 0,
-                    wheel3: 0)?.post(tap: .cghidEventTap)
+            let event = CGEvent(scrollWheelEvent2Source: nil,
+                                units: CGScrollEventUnit.pixel,
+                                wheelCount: 1,
+                                wheel1: 0,
+                                wheel2: 0,
+                                wheel3: 0)
+            event?.setIntegerValueField(CGEventField.scrollWheelEventDeltaAxis1, value: top ? Int64(value) : -1000)
+            DispatchQueue.main.asyncAfter(deadline: .now() + (top ? 0 : 0.4)) {
+                event?.post(tap: .cghidEventTap)
+            }
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                completion?()
+            bot.delay(0.1, type: .click) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + (top ? 0 : 2)) {
+                    completion?()
+                }
             }
         }
     }
@@ -254,21 +284,31 @@ extension String {
     var uppercasingFirst: String {
         return prefix(1).uppercased() + dropFirst()
     }
-
+    
     var lowercasingFirst: String {
         return prefix(1).lowercased() + dropFirst()
     }
-
+    
     var camelized: String {
         guard !isEmpty else {
             return ""
         }
-
+        
         let parts = self.components(separatedBy: badChars)
-
+        
         let first = String(describing: parts.first!).lowercasingFirst
         let rest = parts.dropFirst().map({String($0).uppercasingFirst})
-
+        
         return ([first] + rest).joined(separator: "")
+    }
+}
+
+extension Dictionary where Key == Int, Value == [MapLevelType] {
+    func prettyDescription() {
+        let sorted = sorted(by: { $0.key > $1.key })
+        
+        sorted.forEach { keyValue in
+            print("\(keyValue.value.compactMap({ $0.rawValue }))")
+        }
     }
 }

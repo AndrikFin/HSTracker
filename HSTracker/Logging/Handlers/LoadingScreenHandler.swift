@@ -35,7 +35,11 @@ struct LoadingScreenHandler: LogEventParser {
     let GameModeRegex: RegexPattern = "prevMode=(\\w+).*currMode=(\\w+)"
 
     func handle(logLine: LogLine) {
-        AppDelegate.instance().bot.updateState()
+        defer {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                AppDelegate.instance().bot.updateState()
+            }
+        }
         
         if logLine.line.match(GameModeRegex) {
             let matches = logLine.line.matches(GameModeRegex)
@@ -43,9 +47,10 @@ struct LoadingScreenHandler: LogEventParser {
             
             game.currentMode = Mode(rawValue: matches[1].value.lowercased()) ?? .invalid
             game.previousMode = Mode(rawValue: matches[0].value.lowercased()) ?? .invalid
-
+            
             logger.info("Game mode from \(String(describing: game.previousMode)) "
                 + "to \(String(describing: game.currentMode))")
+            AppDelegate.instance().bot.updateState()
 
             if logLine.time.timeIntervalSinceNow < 5 {
                 if let currentMode = game.currentMode, currentMode == .hub && !MirrorHelper.isInitialized() {

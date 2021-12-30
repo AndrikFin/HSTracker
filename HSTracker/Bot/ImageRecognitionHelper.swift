@@ -12,14 +12,16 @@ import Vision
 import UniformTypeIdentifiers
 
 enum MapLevelType: String {
-    case protectorBattle, casterBattle, fighterBattle, eliteFighterBattle, eliteCasterBattle, eliteProtectorBattle, boonCaters, boonProtectors, boonFighters, spiritHealer, mystery, invalid
+    case protectorBattle, casterBattle, fighterBattle, eliteFighterBattle, eliteCasterBattle, eliteProtectorBattle, boonCaters, boonProtectors, boonFighters, spiritHealer, mystery, mysteriousStranger, invalid, finalBoss, hotPotato, portal
     
-    init(string: String) {
-        self.init(rawValue: MapLevelType.closestStringTo(string).camelized)!
+    init?(string: String) {
+        self.init(rawValue: MapLevelType.closestStringTo(string).camelized)
     }
     
     static func closestStringTo(_ string: String) -> String {
-        return MapLevelType.allTypes.first(where: { jaroWinkler($0, string) > 0.8 }) ?? "invalid"
+        return MapLevelType.allTypes.first(where: {
+            return jaroWinkler($0, string) > 0.95
+        }) ?? "invalid"
     }
     
     static let allTypes = ["Protector Battle",
@@ -32,7 +34,11 @@ enum MapLevelType: String {
                            "Boon: Casters",
                            "Boon: Protectors",
                            "Mystery",
-                           "Spirit Healer"]
+                           "Mysterious Stranger",
+                           "Spirit Healer",
+                           "Final Boss",
+                           "Hot Potato",
+                           "Portal"]
 }
 
 class ImageRecognitionHelper {
@@ -41,40 +47,73 @@ class ImageRecognitionHelper {
         return (NSPoint.hsInfo?[(kCGWindowNumber as String)] as? NSNumber)?.uint32Value
     }
     
-    class func makeScreenshot(position: NSPoint, completion: @escaping (([String])->Void)) {
+    class var horizontalMapRect: NSRect {
         let side = NSPoint.frame.size.height / 4
         
-        let rect = NSRect(x: 0, y: position.y - side / 2, width: NSPoint.frame.size.width, height: side)
+        let hight = NSPoint.frame.size.height
+        let rect = NSRect(x: NSPoint.frame.origin.x + NSPoint.frame.size.width / 2 - hight * 0.6, y: NSPoint.mapFrom.y - side / 2, width: hight, height: side)
         
-        recognizeTextIn(rect: rect, completion: completion)
+        return rect
     }
     
-    class func recognizeTextIn(rect: NSRect, completion: @escaping (([String])->Void)) {
-        if let windowImage: CGImage = CGWindowListCreateImage(rect,
+    class func avarageColor(_ point: NSPoint) -> NSColor {
+        let side: CGFloat = NSPoint.frame.size.height / 5
+        
+        if var windowImage: CGImage = CGWindowListCreateImage(CGRect(x: point.x - side / 2, y: point.y - side / 2, width: side, height: side),
                                                               .optionIncludingWindow,
                                                               windowID ?? 0,
                                                               [.boundsIgnoreFraming,
                                                                .nominalResolution]) {
-            let image = NSImage(cgImage: windowImage, size: rect.size)
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.writeObjects([image])
             
-            let requestHandler = VNImageRequestHandler(cgImage: windowImage)
+            let image = NSImage(cgImage: windowImage, size: NSSize(width: windowImage.width, height: windowImage.height))
+            windowImage = NSImage(data: image.tiffRepresentation(using: .jpeg, factor: 0) ?? Data())!.CGImage!
             
-            // Create a new request to recognize text.
-            let request = VNRecognizeTextRequest { request, error in
-                guard let observations = request.results as? [VNRecognizedTextObservation] else { return }
-                let recognizedStrings = observations.compactMap { $0.topCandidates(1).first?.string }
+            return windowImage.averageColor
+        }
+        
+        return .black
+    }
+    
+    class func recognizeGlobalText(completion: @escaping (([String])-> Void)) {
+        recognizeTextIn(rect: NSPoint.frame) {
+            completion($0)
+        }
+    }
+    
+    class func DetecktMapCircles(completion: @escaping (([String])->Void)) {
+        
+        recognizeTextIn(rect: horizontalMapRect, completion: completion)
+    }
+    
+    class func recognizeTextIn(rect: NSRect, completion: @escaping (([String])->Void)) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            if let windowImage: CGImage = CGWindowListCreateImage(rect,
+                                                                  .optionIncludingWindow,
+                                                                  windowID ?? 0,
+                                                                  [.boundsIgnoreFraming,
+                                                                   .nominalResolution]) {
                 
-                DispatchQueue.main.async {
-                    completion(recognizedStrings)
+//                let image = NSImage(cgImage: windowImage, size: NSSize(width: windowImage.width, height: windowImage.height))
+//                windowImage = NSImage(data: image.tiffRepresentation(using: .jpeg, factor: 0) ?? Data())!.CGImage!
+                
+                let requestHandler = VNImageRequestHandler(cgImage: windowImage)
+                
+                // Create a new request to recognize text.
+                let request = VNRecognizeTextRequest { request, error in
+                    guard let observations = request.results as? [VNRecognizedTextObservation] else { completion([]); return }
+                    let recognizedStrings = observations.compactMap { $0.topCandidates(1).first?.string }
+                    
+                    DispatchQueue.main.async {
+                        completion(recognizedStrings)
+                    }
                 }
-            }
-            
-            do {
-                try requestHandler.perform([request])
-            } catch {
-                print("Unable to perform the requests: \(error).")
+                
+                
+                do {
+                    try requestHandler.perform([request])
+                } catch {
+                    print("Unable to perform the requests: \(error).")
+                }
             }
         }
     }
@@ -86,6 +125,36 @@ class ImageRecognitionHelper {
         let y = NSPoint.frame.origin.y
         
         recognizeTextIn(rect: NSRect(x: x, y: y, width: width, height: height), completion: completion)
+    }
+}
+
+extension CGImage {
+    var averageColor: NSColor {
+        
+        let  data : CFData = dataProvider!.data!
+        let rawPixelData  =  CFDataGetBytePtr(data);
+        
+        let imageHeight = height
+        let imageWidth  = width
+        let bytesPerRow = bytesPerRow
+        let stride = bitsPerPixel / 6
+        
+        var red = 0
+        var green = 0
+        var blue  = 0
+        
+        for row in 0...imageHeight {
+            var rowPtr = rawPixelData! + bytesPerRow * row
+            for _ in 0...imageWidth {
+                red    += Int(rowPtr[0])
+                green  += Int(rowPtr[1])
+                blue   += Int(rowPtr[2])
+                rowPtr += Int(stride)
+            }
+        }
+        
+        let  f : CGFloat = 1.0 / (255.0 * CGFloat(imageWidth) * CGFloat(imageHeight))
+        return NSColor(red: f * CGFloat(red), green: f * CGFloat(green), blue: f * CGFloat(blue), alpha: 1)
     }
 }
 
@@ -165,18 +234,16 @@ func jaroDistance(_ s1: String, _ s2: String) -> Double {
         }
     }
     t /= 2
-    print(s1.count, s2.count, match, t)
     
     // Return the Jaro Similarity
     return (Double(match) / Double(len1)
-                + Double(match) / Double(len2)
-                + (Double(match) - t) / Double(match))
-        / 3.0
+            + Double(match) / Double(len2)
+            + (Double(match) - t) / Double(match))
+    / 3.0
 }
 // Jaro Winkler Similarity
 func jaroWinkler(_ s1: String, _ s2: String) -> Double {
     var jaroDist = jaroDistance(s1, s2)
-    print("Jaro Similarity =", jaroDist)
     
     // If the jaro Similarity is above a threshold
     if jaroDist > 0.7 {
