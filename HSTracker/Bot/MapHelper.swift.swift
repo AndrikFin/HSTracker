@@ -10,7 +10,7 @@ import Foundation
 
 extension BotFnc {
     enum StateByTextType {
-        case undefined, victory, bountyComplete, clickToContinue, pickVisitor, pickOneTreasure, viewParty, battleSpoils, lockIn, felwoodBounties, chooseParty
+        case undefined, victory, bountyComplete, clickToContinue, pickVisitor, pickOneTreasure, viewParty, battleSpoils, lockIn, felwoodBounties, chooseParty, taskObtained
         
         static func from(_ strings: [(String, NSPoint)]) -> (StateByTextType, NSPoint)? {
             if let type = strings.firstConfident(["Victor", "Victors", "Victory"]) {
@@ -33,6 +33,8 @@ extension BotFnc {
                 return (.felwoodBounties, type.1)
             } else if let type = strings.firstConfident(["Choose a Party"]) {
                 return (.chooseParty, type.1)
+            } else if let type = strings.firstConfident(["Task obtained"]) {
+                return (.taskObtained, type.1)
             }
             
             return nil
@@ -48,14 +50,14 @@ extension BotFnc {
     }
     
     func analyzeMap(completion: @escaping (()->Void)) {
-        guard mapInfo == nil && core.game.currentMode == .lettuce_map else { return }
+        guard mapInfo == nil && core.game.currentMode == .lettuce_map && analizingMap else { return }
         log("analyzing map")
         mapInfo = [:]
         
-        operationQueue.addBlock(.scroll(top: false))
-        operationQueue.addBlock(BlockOperation {
+        addBlock(.scroll(top: false))
+        addBlock{ _ in
             self.scrollAndAnalyze(completion: completion)
-        })
+        }
     }
     
     func scrollAndSelect(loop: Int, callback: @escaping ((Bool, Int)->Void)) {
@@ -64,9 +66,9 @@ extension BotFnc {
         self.analyseRow(point: self.mapInfo?.srtartPoint ?? .zero, type: .select) {type, finished in
             if finished {
                 callback(true, loop)
-                self.operationQueue.addBlock(.scroll())
+                self.addBlock(.scroll())
                 self.delay(time: 0.2)
-                self.operationQueue.addBlock {
+                self.addBlock { op in
                     self.scrollAndSelect(loop: loop + 1, callback: callback)
                 }
             } else {
@@ -86,11 +88,11 @@ extension BotFnc {
             return
         }
         
-        operationQueue.addBlock(.move(position: point))
-        operationQueue.addBlock(.delay(0.05))
-        operationQueue.addBlock{
+        addBlock(.move(position: point))
+        addBlock(.delay(0.05))
+        addBlock { _ in
             if type == .detect {
-                self.operationQueue.addBlock {
+                self.addBlock {_ in
                     ImageRecognitionHelper.DetecktMapCircles { strings in
                         for string in strings {
                             if let loopType = MapLevelType(string: string.0), loopType != .invalid {
@@ -103,8 +105,8 @@ extension BotFnc {
                 }
             } else {
                 self.delay(time: 0.05)
-                self.operationQueue.addBlock(.click(point))
-                self.operationQueue.addBlock {
+                self.addBlock(.click(point))
+                self.addBlock { _ in
                     callback(nil, false)
                     self.analyseRow(point: self.nextStepPoint(point, type: type),type: type, callback: callback)
                 }
@@ -128,7 +130,7 @@ extension BotFnc {
     }
     
     func scrollAndAnalyze(completion: @escaping (()->Void)) {
-        guard self.core.game.currentMode == .lettuce_map && mapInfo != nil else { return }
+        guard self.core.game.currentMode == .lettuce_map && mapInfo != nil && analizingMap else { return }
         
         log("map row \(mapInfo?.count ?? 0)")
         if mapComplete {
@@ -136,22 +138,22 @@ extension BotFnc {
             return
         }
         
-        operationQueue.addBlock(BlockOperation {
+        addBlock { _ in
             let count = self.mapInfo?.count ?? 0
             self.mapInfo?.updateValue([], forKey: count - 1)
             self.analyseRow(point: .mapFrom) {type, finished in
                 if finished {
                     if !self.mapComplete {
-                        self.operationQueue.addBlock(.scroll())
+                        self.addBlock(.scroll())
                     }
-                    self.operationQueue.addBlock(BlockOperation {
+                    self.addBlock { _ in
                         self.scrollAndAnalyze(completion: completion)
-                    })
+                    }
                 } else if let type = type, type != .invalid, self.mapInfo?[count - 1]?.last ?? .invalid != type {
                     self.mapInfo?[count - 1]?.append(type)
                 }
             }
-        })
+        }
     }
     
     func nextStepPoint(_ point: NSPoint, type: AnalyzeType) -> NSPoint {

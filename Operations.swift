@@ -18,28 +18,6 @@ extension OperationQueue {
         return queue
     }
     
-    func addBlock(_ block: BlockOperation) {
-//        addOperation(block)
-//        block.completionBlock = {
-//            self.progress.totalUnitCount -= 1
-//            self.progress.totalUnitCount = max(self.progress.totalUnitCount, 0)
-//        }
-//        progress.totalUnitCount += 1
-        waitAndAddBlock(block)
-    }
-    
-    func addBlock(_ exCode: @escaping (()->Void)) {
-//        let block = BlockOperation()
-//        block.addExecutionBlock(exCode)
-//        addOperation(block)
-//        block.completionBlock = {
-//            self.progress.totalUnitCount -= 1
-//            self.progress.totalUnitCount = max(self.progress.totalUnitCount, 0)
-//        }
-//        progress.totalUnitCount += 1
-        waitAndAddBlock(exCode)
-    }
-    
     func waitAndAddBlock(_ block: BlockOperation) {
         addBarrierBlock {
 //            self.cancel()
@@ -107,18 +85,16 @@ extension Operation {
     }
     
     class func click(_ position: NSPoint) -> BlockOperation {
-        return blockWithSema { sem in
-            CGEvent.letfClick(position: position) {
-                sem.signal()
-            }
+        return BlockOperation {
+            CGEvent.letfClick(position: position)
+            usleep(UInt32(CGEvent.delayTime * 1000_000 * 3))
         }
     }
     
     class func scroll(top: Bool = true) -> BlockOperation {
-        blockWithSema { sem in
-            CGEvent.scroll(top: top) {
-                sem.signal()
-            }
+        return BlockOperation {
+            CGEvent.scroll(top: top)
+            usleep(UInt32(CGEvent.delayTime * 1000_000 * 2))
         }
     }
     
@@ -129,27 +105,18 @@ extension Operation {
     }
     
     class func move(position: NSPoint) -> BlockOperation {
-        return blockWithSema { sem in
-            CGEvent.move(position: position) {
-                sem.signal()
-            }
+        return BlockOperation {
+            CGEvent.move(position: position)
+            usleep(UInt32(CGEvent.delayTime * 1000_000 * 2))
         }
     }
     
-    class func detectCircles(completion: @escaping ImageRecognitionHelper.mlCompletion) -> BlockOperation {
-        return blockWithSema { sem in
-            ImageRecognitionHelper.DetecktMapCircles() { strings in
-                sem.signal()
-                completion(strings)
-            }
-        }
-    }
-    
-    class func analizeMap(bot: BotFnc) -> BlockOperation {
-        return blockWithSema { sem in
-            bot.analyzeMap {
-                sem.signal()
-            }
-        }
-    }
+//    class func detectCircles(completion: @escaping ImageRecognitionHelper.mlCompletion) -> BlockOperation {
+//        return blockWithSema { sem in
+//            ImageRecognitionHelper.DetecktMapCircles() { strings in
+//                sem.signal()
+//                completion(strings)
+//            }
+//        }
+//    }
 }
