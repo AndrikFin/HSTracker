@@ -66,6 +66,7 @@ class MonoHelper {
     }
     
     static func testSimulation() {
+        return
         let handle = mono_thread_attach(MonoHelper._monoInstance)
         
         let sim = SimulatorProxy()

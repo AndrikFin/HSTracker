@@ -36,7 +36,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var appHealth: AppHealth = AppHealth.instance
     
     var coreManager: CoreManager!
-    var bot = Bot()
+    var botFnc = BotFnc()
     var triggers: [NSObjectProtocol] = []
     
     lazy var preferences = PreferencesWindowController(preferencePanes: [

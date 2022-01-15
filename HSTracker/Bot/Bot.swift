@@ -87,11 +87,6 @@ class Bot {
     
     let maxIdleTimeInterval: TimeInterval = 30
     
-    func log(_ string: String) {
-        print("👑 \(Date()) \(string)")
-        
-    }
-    
     func modeDidChange() {
         log("mode: \(core.game.currentMode ?? .invalid)")
         gameModeChangeDate = Date()
@@ -793,10 +788,6 @@ class Bot {
         //            }
         //        }
     }
-}
-
-enum MysteryPosition {
-    case left, right
 }
 
 extension Bot.MapInfo {

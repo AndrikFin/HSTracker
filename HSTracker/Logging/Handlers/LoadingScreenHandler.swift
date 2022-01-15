@@ -37,7 +37,7 @@ struct LoadingScreenHandler: LogEventParser {
     func handle(logLine: LogLine) {
         defer {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                AppDelegate.instance().bot.updateState()
+                AppDelegate.instance().botFnc.updateState()
             }
         }
         
@@ -50,7 +50,7 @@ struct LoadingScreenHandler: LogEventParser {
             
             logger.info("Game mode from \(String(describing: game.previousMode)) "
                 + "to \(String(describing: game.currentMode))")
-            AppDelegate.instance().bot.updateState()
+            AppDelegate.instance().botFnc.updateState()
 
             if logLine.time.timeIntervalSinceNow < 5 {
                 if let currentMode = game.currentMode, currentMode == .hub && !MirrorHelper.isInitialized() {

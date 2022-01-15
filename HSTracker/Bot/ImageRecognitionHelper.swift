@@ -18,6 +18,10 @@ enum MapLevelType: String {
         self.init(rawValue: MapLevelType.closestStringTo(string).camelized)
     }
     
+    var isMystery: Bool {
+        [.mystery, .mysteriousStranger].contains(self)
+    }
+    
     static func closestStringTo(_ string: String) -> String {
         return MapLevelType.allTypes.first(where: {
             return jaroWinkler($0, string) > 0.95
@@ -42,6 +46,8 @@ enum MapLevelType: String {
 }
 
 class ImageRecognitionHelper {
+    
+    typealias mlCompletion = (([(String, NSPoint)]) -> Void)
     
     static var windowID: CGWindowID? {
         return (NSPoint.hsInfo?[(kCGWindowNumber as String)] as? NSNumber)?.uint32Value
@@ -74,19 +80,20 @@ class ImageRecognitionHelper {
         return .black
     }
     
-    class func recognizeGlobalText(completion: @escaping (([String])-> Void)) {
+    class func recognizeGlobalText(completion: @escaping mlCompletion) {
         recognizeTextIn(rect: NSPoint.frame) {
             completion($0)
         }
     }
     
-    class func DetecktMapCircles(completion: @escaping (([String])->Void)) {
-        
-        recognizeTextIn(rect: horizontalMapRect, completion: completion)
+    class func DetecktMapCircles(completion: @escaping mlCompletion) {
+        recognizeTextIn(rect: horizontalMapRect, completion: { strings in
+            completion(strings)
+        })
     }
     
-    class func recognizeTextIn(rect: NSRect, completion: @escaping (([String])->Void)) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+    class func recognizeTextIn(rect: NSRect, completion: @escaping mlCompletion) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             if let windowImage: CGImage = CGWindowListCreateImage(rect,
                                                                   .optionIncludingWindow,
                                                                   windowID ?? 0,
@@ -100,25 +107,40 @@ class ImageRecognitionHelper {
                 
                 // Create a new request to recognize text.
                 let request = VNRecognizeTextRequest { request, error in
-                    guard let observations = request.results as? [VNRecognizedTextObservation] else { completion([]); return }
-                    let recognizedStrings = observations.compactMap { $0.topCandidates(1).first?.string }
+                    guard let observations = request.results as? [VNRecognizedTextObservation] else {
+                        DispatchQueue.main.async {
+                            completion([])
+                        }
+                        return
+                    }
+                    let recognizedStrings = observations.compactMap { $0.topCandidates(1).first }
+                    let stringPoints: [(String, NSPoint)] = recognizedStrings.compactMap({ recText in
+                        if let boundrect = try? recText.boundingBox(for: recText.string.startIndex..<recText.string.endIndex) {
+                            let imageRect = VNImageRectForNormalizedRect(boundrect.boundingBox, Int(rect.width), Int(rect.height))
+                            return (recText.string, imageRect.center.toEuqlid)
+                        }
+                        return nil
+                    })
                     
                     DispatchQueue.main.async {
-                        completion(recognizedStrings)
-                    }
+                        completion(stringPoints)
+                        return
+                    }   
                 }
-                
                 
                 do {
                     try requestHandler.perform([request])
                 } catch {
+                    completion([])
                     print("Unable to perform the requests: \(error).")
                 }
+            } else {
+                completion([])
             }
         }
     }
     
-    class func analyzeReadyButton(completion: @escaping (([String])->Void)) {
+    class func analyzeReadyButton(completion: @escaping mlCompletion) {
         let height = NSPoint.frame.height
         let width = NSPoint.frame.width
         let x = NSPoint.frame.origin.x + width / 3 * 2

@@ -8,6 +8,7 @@
 
 import Foundation
 import AppKit
+import Vision
 
 extension NSPoint {
     static var playerWindow: NSWindow {
@@ -137,6 +138,18 @@ extension NSPoint {
         return NSPoint(x: -0.4, y: 0.3).toScreenPoint
     }
     
+    static var lockInButton: NSPoint {
+        return NSPoint(x: -0.11, y: 0.08).toScreenPoint
+    }
+    
+    static var bossIcon: NSPoint {
+        return NSPoint(x: -0.17, y: -0.3).toScreenPoint
+    }
+    
+    static var bountySixButton: NSPoint {
+        return NSPoint(x: 0.13, y: 0.19).toScreenPoint
+    }
+    
     var proportionalPoint: NSPoint {
         let x = (x - (NSPoint.frame.origin.x + NSPoint.frame.size.width / 2)) / NSPoint.frame.size.height
         let y = (y - (NSPoint.frame.origin.y + NSPoint.frame.size.height / 2)) / NSPoint.frame.size.height
@@ -181,28 +194,32 @@ extension NSScreen {
 
 extension CGEvent {
     
-    static var bot: Bot {
-        return AppDelegate.instance().bot
+    static var bot: BotFnc {
+        return AppDelegate.instance().botFnc
     }
     
-    class func letfClick(position: NSPoint, delay: TimeInterval = 0.05, completion: (()->Void)? = nil) {
-        guard !AppDelegate.instance().bot.paused && NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == "unity.Blizzard Entertainment.Hearthstone" })?.isActive == true else {
+    static let delayTime: TimeInterval = 0.05
+    
+    class func letfClick(position: NSPoint, completion: (()->Void)? = nil) {
+        guard !AppDelegate.instance().botFnc.paused && NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == "unity.Blizzard Entertainment.Hearthstone" })?.isActive == true && !AppDelegate.instance().botFnc.operationQueue.progress.isCancelled else {
+            completion?()
             return
         }
         
         DispatchQueue.main.async {
-            bot.delay(delay, type: .click) {
+            CGEvent(mouseEventSource: CGEventSource.init(stateID: .combinedSessionState),
+                    mouseType: .leftMouseDown,
+                    mouseCursorPosition: position,
+                    mouseButton: .left)?.post(tap: .cghidEventTap)
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + delayTime) {
                 CGEvent(mouseEventSource: CGEventSource.init(stateID: .combinedSessionState),
-                        mouseType: .leftMouseDown,
+                        mouseType: .leftMouseUp,
                         mouseCursorPosition: position,
                         mouseButton: .left)?.post(tap: .cghidEventTap)
                 
-                bot.delay(0.05, type: .click) {
-                    CGEvent(mouseEventSource: CGEventSource.init(stateID: .combinedSessionState),
-                            mouseType: .leftMouseUp,
-                            mouseCursorPosition: position,
-                            mouseButton: .left)?.post(tap: .cghidEventTap)
-                    bot.delay(0.05, type: .click) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + delayTime) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + delayTime) {
                         completion?()
                     }
                 }
@@ -210,31 +227,28 @@ extension CGEvent {
         }
     }
     
-    class func move(position: NSPoint, delay: TimeInterval = 0.05, completion: (()->Void)? = nil) {
-        guard !AppDelegate.instance().bot.paused && NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == "unity.Blizzard Entertainment.Hearthstone" })?.isActive == true else {
+    class func move(position: NSPoint, delayTime: TimeInterval = 0.05, completion: (()->Void)? = nil) {
+        guard !AppDelegate.instance().botFnc.paused && NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == "unity.Blizzard Entertainment.Hearthstone" })?.isActive == true && !AppDelegate.instance().botFnc.operationQueue.progress.isCancelled else {
             return
         }
         
-        DispatchQueue.main.async {
-            bot.delay(delay, type: .click) {
-                CGEvent(mouseEventSource: CGEventSource.init(stateID: .combinedSessionState),
-                        mouseType: .mouseMoved,
-                        mouseCursorPosition: position,
-                        mouseButton: .left)?.post(tap: .cghidEventTap)
-                
-                bot.delay(0.05, type: .click) {
-                    completion?()
-                }
+        DispatchQueue.main.asyncAfter(deadline: .now() + delayTime) {
+            CGEvent(mouseEventSource: CGEventSource.init(stateID: .combinedSessionState),
+                    mouseType: .mouseMoved,
+                    mouseCursorPosition: position,
+                    mouseButton: .left)?.post(tap: .cghidEventTap)
+            DispatchQueue.main.asyncAfter(deadline: .now() + delayTime) {
+                completion?()
             }
         }
     }
     
     class func scroll(top: Bool = true, value: Int = 4, completion: (()->Void)? = nil) {
-        guard !AppDelegate.instance().bot.paused && NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == "unity.Blizzard Entertainment.Hearthstone" })?.isActive == true else {
+        guard !AppDelegate.instance().botFnc.paused && NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == "unity.Blizzard Entertainment.Hearthstone" })?.isActive == true && !AppDelegate.instance().botFnc.operationQueue.progress.isCancelled else {
             return
         }
         
-        DispatchQueue.main.async {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delayTime) {
             let event = CGEvent(scrollWheelEvent2Source: nil,
                                 units: CGScrollEventUnit.pixel,
                                 wheelCount: 1,
@@ -242,14 +256,9 @@ extension CGEvent {
                                 wheel2: 0,
                                 wheel3: 0)
             event?.setIntegerValueField(CGEventField.scrollWheelEventDeltaAxis1, value: top ? Int64(value) : -1000)
-            DispatchQueue.main.asyncAfter(deadline: .now() + (top ? 0 : 0.4)) {
-                event?.post(tap: .cghidEventTap)
-            }
-            
-            bot.delay(0.1, type: .click) {
-                DispatchQueue.main.asyncAfter(deadline: .now() + (top ? 0 : 2)) {
-                    completion?()
-                }
+            event?.post(tap: .cghidEventTap)
+            DispatchQueue.main.asyncAfter(deadline: .now() + delayTime) {
+                completion?()
             }
         }
     }
@@ -274,8 +283,30 @@ extension NSView {
 }
 
 extension Card {
-    var role: Int {
-        return jsonRepresentation["mercenariesRole"] as? Int ?? 0
+    enum MercenaryRole: Int {
+        case netural, caster, fighter, protector, none
+        
+        var critTo: MercenaryRole {
+            switch self {
+            case .protector: return .fighter
+            case .caster: return .protector
+            case .fighter: return .caster
+            case .netural, .none: return .none
+            }
+        }
+        
+        var critFrom: MercenaryRole {
+            switch self {
+            case .protector: return .caster
+            case .caster: return .fighter
+            case .fighter: return .protector
+            case .netural, .none: return .none
+            }
+        }
+    }
+    
+    var role: MercenaryRole {
+        return MercenaryRole(rawValue: jsonRepresentation["mercenariesRole"] as? Int ?? 0) ?? .none
     }
 }
 
@@ -312,3 +343,16 @@ extension Dictionary where Key == Int, Value == [MapLevelType] {
         }
     }
 }
+
+extension Array where Element == (String, NSPoint) {
+    func firstConfident(_ strings: [String], confidence: Double = 0.95) -> (String, NSPoint)? {
+        for string in strings {
+            let sortedByConfidence = filter({ jaroWinkler(string, $0.0) > confidence }).sorted(by: { $0.0 > $1.0 })
+                if sortedByConfidence.count > 0,  let first = sortedByConfidence.first {
+                    return first
+                }
+        }
+        return nil
+    }
+}
+

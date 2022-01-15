@@ -82,7 +82,7 @@ class PowerGameStateParser: LogEventParser {
         
         defer {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                AppDelegate.instance().bot.updateState()
+                AppDelegate.instance().botFnc.updateState()
             }
         }
 
