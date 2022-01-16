@@ -10,7 +10,7 @@ import Foundation
 
 extension BotFnc {
     enum StateByTextType {
-        case undefined, victory, bountyComplete, clickToContinue, pickVisitor, pickOneTreasure, viewParty, battleSpoils, lockIn, felwoodBounties, chooseParty, taskObtained
+        case undefined, victory, bountyComplete, clickToContinue, pickVisitor, pickOneTreasure, viewParty, battleSpoils, lockIn, felwoodBounties, chooseParty, taskObtained, consolationCoins
         
         static func from(_ strings: [(String, NSPoint)]) -> (StateByTextType, NSPoint)? {
             if let type = strings.firstConfident(["Victor", "Victors", "Victory"]) {
@@ -35,6 +35,8 @@ extension BotFnc {
                 return (.chooseParty, type.1)
             } else if let type = strings.firstConfident(["Task obtained"]) {
                 return (.taskObtained, type.1)
+            } else if let type = strings.firstConfident(["Consolation Coins"]) {
+                return (.consolationCoins, type.1)
             }
             
             return nil
@@ -55,7 +57,7 @@ extension BotFnc {
         mapInfo = [:]
         
         addBlock(.scroll(top: false))
-        addBlock{ _ in
+        addBlock{
             self.scrollAndAnalyze(completion: completion)
         }
     }
@@ -68,7 +70,7 @@ extension BotFnc {
                 callback(true, loop)
                 self.addBlock(.scroll())
                 self.delay(time: 0.2)
-                self.addBlock { op in
+                self.addBlock {
                     self.scrollAndSelect(loop: loop + 1, callback: callback)
                 }
             } else {
@@ -88,11 +90,11 @@ extension BotFnc {
             return
         }
         
-        addBlock(.move(position: point))
-        addBlock(.delay(0.05))
-        addBlock { _ in
+        self.addBlock(.move(position: point))
+        delay(time: 0.05)
+        addBlock {
             if type == .detect {
-                self.addBlock {_ in
+                self.addBlock {
                     ImageRecognitionHelper.DetecktMapCircles { strings in
                         for string in strings {
                             if let loopType = MapLevelType(string: string.0), loopType != .invalid {
@@ -100,14 +102,16 @@ extension BotFnc {
                                 break
                             }
                         }
+                        self.operationQueue.cancel()
                         self.analyseRow(point: self.nextStepPoint(point, type: type), type: type, callback: callback)
                     }
                 }
             } else {
                 self.delay(time: 0.05)
-                self.addBlock(.click(point))
-                self.addBlock { _ in
+                self.click(position: point)
+                self.addBlock {
                     callback(nil, false)
+                    self.operationQueue.cancel()
                     self.analyseRow(point: self.nextStepPoint(point, type: type),type: type, callback: callback)
                 }
                     
@@ -138,7 +142,7 @@ extension BotFnc {
             return
         }
         
-        addBlock { _ in
+        addBlock {
             let count = self.mapInfo?.count ?? 0
             self.mapInfo?.updateValue([], forKey: count - 1)
             self.analyseRow(point: .mapFrom) {type, finished in
@@ -146,7 +150,7 @@ extension BotFnc {
                     if !self.mapComplete {
                         self.addBlock(.scroll())
                     }
-                    self.addBlock { _ in
+                    self.addBlock {
                         self.scrollAndAnalyze(completion: completion)
                     }
                 } else if let type = type, type != .invalid, self.mapInfo?[count - 1]?.last ?? .invalid != type {
@@ -164,21 +168,6 @@ extension BotFnc {
                 return NSPoint(x: point.x + self.step, y: NSPoint.mapFrom.y)
             } else {
                 return NSPoint(x: point.x - self.step, y: NSPoint.mapFrom.y)
-            }
-        }
-    }
-    
-    class func globalTextType(callback: @escaping ((StateByTextType, NSPoint)->Void)) -> BlockOperation {
-        //        log("check global text")
-        
-        return Operation.blockWithSema { sem in
-            ImageRecognitionHelper.recognizeGlobalText { strings in
-                sem.signal()
-                if let type = StateByTextType.from(strings) {
-                    callback(type.0, type.1)
-                    return
-                }
-                callback(.undefined, .zero)
             }
         }
     }

@@ -42,7 +42,8 @@ enum MapLevelType: String {
                            "Spirit Healer",
                            "Final Boss",
                            "Hot Potato",
-                           "Portal"]
+                           "Portal",
+                           "Consolation Coins"]
 }
 
 class ImageRecognitionHelper {

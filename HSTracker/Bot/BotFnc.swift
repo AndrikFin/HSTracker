@@ -8,6 +8,7 @@
 
 import Foundation
 import SwiftUI
+import XCTest
 
 func log(_ value: Any) {
     print("👑 \(Date()) \(value)")
@@ -42,7 +43,7 @@ class BotFnc {
     var prevStep: Step = .invalid
     var stepChangeDate: Date = Date.distantPast
     var prevGameMode: Mode = .invalid
-    var ping: Date = Date.distantPast
+    var ping: Date = Date()
     var paused: Bool = false {
         didSet {
             if paused {
@@ -62,6 +63,9 @@ class BotFnc {
         
         Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { _ in
             DispatchQueue.main.async {
+                if fabs(self.ping.timeIntervalSinceNow) > 60 * 5 {
+                    self.cleanUp()
+                }
                 self.checkScreenState()
             }
         }
@@ -99,6 +103,7 @@ class BotFnc {
         analizingMap = false
         selectingLevel = false
         paused = false
+        inFight = false
         if !keepMap {
             mapInfo = nil
         }
@@ -134,16 +139,6 @@ class BotFnc {
     }
     
     //MARK: - lifecycle
-    
-    func testSerial() {
-        for i in stride(from: 100, to: 0, by: -1) {
-            addBlock(.delay(TimeInterval(1)))
-            addBlock(BlockOperation { log("\(i)")} )
-        }
-        addBlock(.delay(10))
-        operationQueue.waitUntilAllOperationsAreFinished()
-        log("all operations finished")
-    }
     
     func modeDidChange() {
         log("mode: \(core.game.currentMode ?? .invalid)")
@@ -215,12 +210,14 @@ class BotFnc {
         stepChangeDate = Date()
         ping = Date()
         
+        if self.core.game.step == .main_combat {
+            self.cleanUp(keepMap: true)
+        }
         processState()
     }
     
     func processState() {
         guard self.operationQueue.isFinished else { return }
-        addBlock { _ in
             DispatchQueue.main.async {
                 self.prefightIfNeeded()
                 self.fightIfNeeded()
@@ -228,7 +225,6 @@ class BotFnc {
                 self.moveToMapIfNeeded()
                 self.analyseMapIfNeeded()
                 self.selectLevelIfNeeded()
-            }
         }
     }
     
@@ -237,12 +233,12 @@ class BotFnc {
     func pickTreasureIfNeeded() {
         guard core.game.currentMode == .lettuce_map && screenState == .pickOneTreasure else { return }
         
-        addBlock { _ in
+        addBlock {
             self.click(position: .firstBonusButton)
             self.delay(time: 0.2)
             self.click(position: .bonusTakeButton)
             self.delay(time: 0.2)
-            self.addBlock { _ in
+            self.addBlock {
                 self.processState()
             }
         }
@@ -254,7 +250,7 @@ class BotFnc {
         delay(time: 0.2)
         click(position: .mysteryChooseButton)
         delay(time: 0.2)
-        addBlock { _ in
+        addBlock {
             self.processState()
         }
     }
@@ -273,13 +269,13 @@ class BotFnc {
     var analizingMap = false
     func analyseMapIfNeeded() {
         guard core.game.currentMode == .lettuce_map && screenState == .viewParty && mapInfo == nil && !analizingMap else { return }
+        cleanUp(keepMap: true)
         analizingMap = true
-        
         analyzeMap {
             self.analizingMap = false
+            self.delay(time: 0.2)
             self.addBlock(.scroll(top: false))
-            self.addBlock(.delay(0.2))
-            self.addBlock { _ in
+            self.addBlock {
                 self.processState()
             }
         }
@@ -292,45 +288,42 @@ class BotFnc {
         var currentRowTypes: [MapLevelType] = []
         log("going to select raw")
         
-        ImageRecognitionHelper.analyzeReadyButton { values in
-            log("option to select: \(values)")
+        addBlock(.readyButtonText() { states in
+            log("option to select: \(states)")
             self.readyButtonState = .none
-            for value in values {
-                let state = ReadyButtonState.closestTypeTo(value.0)
+            for state in states {
                 if state != .none {
                     self.readyButtonState = state
-                    
-                    if state == .visit || state == .lordBanehollow {
-                        self.click(position: .chooseButton)
-                        self.delay(time: 4)
-                        self.addBlock { _ in
-                            self.selectingLevel = false
-                        }
-                        return
-                    }
+                    self.selectingLevel = false
+                    self.selectActiveLevel()
+                    return
                 }
             }
-            self.addBlock { _ in
+            
+            self.addBlock {
+                guard self.selectingLevel else { return }
                 self.analyseRow(point: .mapFrom) { type, finished in
+                    guard self.selectingLevel else { return }
                     log("select analyzing for mystery type: \(String(describing: type)) finished: \(finished)")
                     type.map{ currentRowTypes.append($0) }
                     if finished {
-                        self.addBlock { _ in
+                        self.addBlock {
+                            guard self.selectingLevel else { return }
                             self.loopThroughLevels(containsMystery: currentRowTypes.filter({$0.isMystery}).count > 0)
                         }
                     }
                 }
             }
-        }
+        })
     }
     
     func loopThroughLevels(containsMystery: Bool) {
         guard selectingLevel else { return }
         var hasMystery = containsMystery
         self.scrollAndSelect(loop: 0) { finished, loop in
+            guard self.selectingLevel else { return }
             log("loop: \(loop)")
             if loop > 7 {
-                self.cleanUp(keepMap: true)
                 self.selectingLevel = false
                 return
             }
@@ -338,35 +331,41 @@ class BotFnc {
             if finished {
                 hasMystery = false
             }
-            self.addBlock { _ in
-                ImageRecognitionHelper.analyzeReadyButton { values in
-                    log("option to select: \(values)")
-                    self.readyButtonState = .none
-                    for value in values {
-                        let state = ReadyButtonState.closestTypeTo(value.0)
-                        if state != .none {
-                            self.readyButtonState = state
-                            
-                            if (!containsMystery && state != .none) || (hasMystery && state == .visit) {
-                                self.click(position: .chooseButton)
-                                self.delay(time: 4)
-                                self.addBlock { _ in
-                                    self.cleanUp(keepMap: true)
-                                    self.processState()
-                                }
-                                return
-                            }
+            
+            self.addBlock(.readyButtonText() { states in
+                guard self.selectingLevel else { return }
+                log("option to select: \(states)")
+                self.readyButtonState = .none
+                for state in states {
+                    if state != .none {
+                        self.readyButtonState = state
+                        
+                        if (!containsMystery && state != .none) || (hasMystery && state == .visit) {
+                            self.selectingLevel = false
+                            self.operationQueue.cancel()
+                            self.selectActiveLevel()
+                            return
                         }
                     }
                 }
-            }
+            })
+        }
+    }
+    
+    func selectActiveLevel() {
+        click(position: .chooseButton)
+        delay(time: 2)
+        click(position: .chooseButton)
+        delay(time: 4)
+        addBlock {
+            self.processState()
         }
     }
     
     func selectBoss() {
-        addBlock(.click(.bossIcon))
-        addBlock(.delay(0.2))
-        addBlock(.click(.chooseButton))
+        click(position: .bossIcon)
+        delay(time: 0.2)
+        click(position: .chooseButton)
     }
     
     
@@ -374,7 +373,7 @@ class BotFnc {
     func checkScreenState() {
         guard operationQueue.isFinished else { return }
         
-        addBlock(BotFnc.globalTextType { state, point  in
+        addBlock(.globalTextType(callback: { state, _ in
             if self.screenState != state {
                 self.screenState = state
                 self.screenStateDidChange()
@@ -393,18 +392,24 @@ class BotFnc {
             case .pickOneTreasure: self.pickTreasureIfNeeded()
             case .viewParty:
                 self.delay(time: 1)
-                self.addBlock { _ in
+                self.addBlock {
+                    self.processState()
+                }
+            case .consolationCoins:
+                self.click(position: .finalScreenButton)
+                self.delay(time: 0.2)
+                self.addBlock {
                     self.processState()
                 }
             case .battleSpoils: self.click(position: .finalScreenButton)
             case .lockIn:
                 guard self.core.game.currentMode == .lettuce_bounty_team_select else { return }
-                self.addBlock { _ in
+                self.addBlock {
                     self.delay(time: 0.1)
                     self.click(position: .lockInButton)
                 }
             }
-        })
+        }))
     }
     
     func openBoxes() {
@@ -435,9 +440,9 @@ class BotFnc {
         operationQueue.waitAndAddBlock(block)
     }
     
-    func addBlock(_ exCode: @escaping ((OperationQueue?)->Void)) {
-        operationQueue.waitAndAddBlock { [weak operationQueue] in
-            exCode(operationQueue)
+    func addBlock(_ exCode: @escaping (()->Void)) {
+        operationQueue.waitAndAddBlock {
+            exCode()
         }
     }
     
@@ -446,93 +451,134 @@ class BotFnc {
     var operationQueue: OperationQueue = .serialOpertaionQueue()
     
     func finishFightIfNeeded() {
-        guard core.game.step == .final_gameover && core.game.currentMode == .gameplay else { return }
+        guard core.game.step == .final_gameover && core.game.currentMode == .gameplay && !inFight else { return }
         log("finishFight")
         
         click(position: .testButton)
         delay(time: 0.4)
-        addBlock { _ in
-            self.cleanUp(keepMap: true)
+        addBlock {
             self.processState()
         }
     }
     
     func prefightIfNeeded() {
-        guard core.game.currentMode == .gameplay && !core.game.enemiesReady && core.game.step == .main_action else { return }
-        log("prefight")
-        
-        addBlock(.delay(0.4))
-        if !self.core.game.enemiesReady {
-            self.addBlock(.click(.readyButton))
-            self.addBlock(.delay(0.2))
-            self.addBlock { _ in
-                self.processState()
-            }
-        } else {
-            self.addBlock(.delay(0.2))
-            self.addBlock { _ in
-                self.processState()
+        addBlock {
+            guard self.core.game.currentMode == .gameplay && !self.core.game.enemiesReady && self.core.game.step == .main_action && !self.inFight else { return }
+            log("prefight")
+            
+            self.delay(time: 0.4)
+            self.addBlock {
+                if !self.core.game.enemiesReady {
+                    self.click(position: .readyButton)
+                    self.delay(time: 0.2)
+                    self.addBlock {
+                        self.processState()
+                    }
+                } else {
+                    self.delay(time: 0.2)
+                    self.addBlock {
+                        self.processState()
+                    }
+                }
             }
         }
     }
     
+    var firstUnreadyIndex: Int? {
+        return self.core.game.availalbeMinions.firstIndex(where: { !$0.ready })
+    }
+    
+    func firstEnemyIndexForRole(role: Card.MercenaryRole) -> Int {
+        return self.core.game.enemyMinions.firstIndex(where: { $0.card.role.critFrom == role}) ?? self.core.game.enemyMinions.firstIndex(where: { $0.card.role.critTo == role}) ?? 0
+    }
+    
+    func playerPosition(index: Int) -> NSPoint {
+        let sem = DispatchSemaphore(value: 0)
+        var position: NSPoint = .zero
+        DispatchQueue.main.async {
+            position = self.core.game.playerViews[index].frame.center.playerScreenCenter
+            sem.signal()
+        }
+        sem.wait()
+        return position
+    }
+    
+    var enemyPosition: NSPoint {
+        let sem = DispatchSemaphore(value: 0)
+        var position: NSPoint = .zero
+        DispatchQueue.main.async {
+            let role = self.core.game.availalbeMinions.first(where: { !$0.ready })?.card.role ?? .none
+            position = self.core.game.enemyViews[self.firstEnemyIndexForRole(role: role)].frame.center.enemyScreenCenter
+            sem.signal()
+        }
+        sem.wait()
+        return position
+    }
+    
     var inFight = false
     func fightIfNeeded() {
-        guard operationQueue.isFinished && !inFight else { return }
-        if core.game.currentMode == .gameplay && core.game.enemiesReady && core.game.playerIsReady && core.game.step == .main_action {
-            log("All players are ready")
-            self.inFight = false
-            addBlock(.click(.readyButton))
-            addBlock(.delay(0.4))
-            addBlock { _ in
-                self.processState()
+        addBlock {
+            if self.core.game.currentMode == .gameplay && self.core.game.enemiesReady && self.core.game.playerIsReady && self.core.game.step == .main_action && self.inFight {
+                log("All players are ready")
+                self.click(position: .readyButton)
+                self.delay(time: 0.4)
+                self.addBlock {
+                    self.operationQueue.cancel()
+                    self.inFight = false
+                    self.processState()
+                }
+                return
             }
-            return
-        }
-        guard core.game.currentMode == .gameplay && core.game.enemiesReady && !core.game.playerIsReady && core.game.step == .main_action else {
-            self.inFight = false
-            return
-        }
-        log("Fight")
-        inFight = true
-        
-        addBlock { opQ in
-            DispatchQueue.main.async {
-                let playerIndex = self.core.game.availalbeMinions.firstIndex(where: { !$0.has(tag: .lettuce_ability_tile_visual_self_only) })
-                log("Player index: \(String(describing: playerIndex))")
+            guard self.core.game.currentMode == .gameplay && self.core.game.enemiesReady && !self.core.game.playerIsReady && self.core.game.step == .main_action else {
+                self.addBlock {
+                    self.operationQueue.cancel()
+                    self.processState()
+                }
+                return
+            }
+            guard !self.inFight else { return }
+            log("Fight")
+            self.addBlock {
+                self.inFight = true
+            }
+            
+            self.addBlock {
+                guard self.inFight else { return }
                 
-                guard let index = playerIndex else {
+                guard let index = self.firstUnreadyIndex else {
                     self.inFight = false
                     self.processState()
                     return
                 }
+                let playerPosition = self.playerPosition(index: index)
+                log("Player index: \(String(describing: self.firstUnreadyIndex))")
                 
-                let playerMinion = self.core.game.availalbeMinions[index]
-                log("Player role: \(playerMinion.card.role), \(playerMinion.card.jsonRepresentation["mercenariesRole"] as? Int ?? 0)")
+                let checkConditon:(()->Bool) = {
+                    guard self.inFight && !self.core.game.availalbeMinions[index].ready else {
+                        self.inFight = false
+                        self.cleanUp(keepMap: true)
+                        self.processState()
+                        return false
+                    }
+                    return true
+                }
                 
-                let enemyIndex = self.core.game.enemyMinions.firstIndex(where: { $0.card.role.critFrom == playerMinion.card.role}) ?? self.core.game.enemyMinions.firstIndex(where: { $0.card.role.critTo == playerMinion.card.role}) ?? 0
-                
-                let playerPosition = self.core.game.playerViews[index].frame.center.playerScreenCenter
-                let enemyPosition = self.core.game.enemyViews[enemyIndex].frame.center.enemyScreenCenter
-                self.addBlock { _ in
-                    self.delay(time: 1)
+                let fightDelay = 0.5
+                self.addBlock {
+                    self.delay(time: fightDelay)
                     self.click(position: .firstSkill)
-                    self.delay(time: 0.3)
+                    self.delay(time: fightDelay)
                     
-                    self.addBlock { _ in
-                        if !self.core.game.availalbeMinions[index].has(tag: .lettuce_ability_tile_visual_self_only) {
-                            self.addBlock(.click(enemyPosition))
-                            self.addBlock(.delay(0.3))
-                        }
+                    self.addBlock {
+                        guard checkConditon() else { return }
+                        self.click(position: self.enemyPosition)
+                        self.delay(time: fightDelay)
                         
-                        self.addBlock { _ in
-                            if !self.core.game.availalbeMinions[index].has(tag: .lettuce_ability_tile_visual_self_only) {
-                                self.addBlock(.click(playerPosition))
-                                self.addBlock(.delay(0.3))
-                            }
-                            
-                            self.addBlock(.delay(0.3))
-                            self.addBlock { _ in
+                        self.addBlock {
+                            guard checkConditon() else { return }
+                            self.click(position: playerPosition)
+                            self.delay(time: fightDelay)
+                            self.addBlock{
                                 self.inFight = false
                                 self.processState()
                             }

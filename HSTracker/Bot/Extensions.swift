@@ -356,3 +356,9 @@ extension Array where Element == (String, NSPoint) {
     }
 }
 
+extension Entity {
+    var ready: Bool {
+        return has(tag: .lettuce_ability_tile_visual_self_only)
+    }
+}
+
